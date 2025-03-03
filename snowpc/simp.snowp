@@ -1,0 +1,3 @@
+@0xdcb1c7e83fa16a34;
+
+import "foo.bar/pickle" as bizzle;

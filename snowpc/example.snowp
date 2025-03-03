@@ -1,0 +1,261 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xdcb1c7e83fa16a34;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+typedef WebSession = Blob(20);
+typedef WebSessionString = Text;
+
+struct DeviceLabelNameAndCommitmentKey {
+    dln @ 0: lib.DeviceLabelAndName;
+    commitmentKey @1 : lib.RandomCommitmentKey;
+}
+
+enum LoadUserChainAuthType {
+    AsLocalUser @0;
+    Token @1;
+    SelfToken @2;
+    AsLocalTeam @3; 
+    OpenVHost @4;
+}
+
+variant LoadUserChainAuth switch (t : LoadUserChainAuthType) {
+    case AsLocalUser: void;
+    case Token @1 : lib.PermissionToken;
+    case SelfToken @2 : lib.PermissionToken;
+    case AsLocalTeam @3 : TeamVOBearerToken;
+    case OpenVHost : void;
+}
+
+struct LoadUserChainArg {
+    uid @0 : lib.UID;
+    start @1 : lib.Seqno;
+    username @2 : Option(NameSeqnoPair); // if already loaded a username, say which one. S is the next link to get
+    auth @3 : LoadUserChainAuth;
+}
+
+struct NameSeqnoPair {
+    n @0 : lib.Name;
+    s @1 : lib.NameSeqno;
+}
+
+struct ResolveUsernameArg {
+    n @0 : lib.Name;
+    auth @1 : LoadUserChainAuth;
+}
+
+struct NameCommitmentAndKey {
+    unc @0 : NameCommitment;
+    key @1 : lib.RandomCommitmentKey;
+}
+
+struct UserChain {
+    links @0 : List(lib.LinkOuter);
+    locations @1 : List(lib.TreeLocation);
+    usernames @2 : List(NameCommitmentAndKey);
+    merkle @3 : lib.MerklePathsCompressed;
+    deviceNames @4 : List(DeviceLabelNameAndCommitmentKey); // Only returned for self-load
+    usernameUtf8 @5 : lib.NameUtf8; // sigchain only has flat ASCII
+    numUsernameLinks @6 : Uint; // number of username links included in result (either 1 or 2)
+    hepks @7 : lib.HEPKSet; 
+}
+
+struct SetPassphraseAnnex {
+    arg @0 : ChangePassphraseArg;
+    link @1 : PostGenericLinkArg;
+}
+
+struct GrantLocalViewPermissionPayload @0xf620e4a9845fa063 {
+    viewee @0 : lib.PartyID;
+    viewer @1 : lib.PartyID;
+    tm @2 : lib.Time;
+}
+
+struct ChangedUsernameFullUpdateArg {
+    link @0 : lib.LinkOuter;
+    UsernameCommitmentKey @1 : lib.RandomCommitmentKey;
+    rur @2 : ReserveNameRes;
+    nextTreeLocation @3 : lib.TreeLocation;
+}
+
+struct GenericChain {
+    links @0 : List(lib.LinkOuter);
+    locations @1 : List(lib.TreeLocation);
+    merkle @2 : lib.MerklePathsCompressed;
+    locationSeed @3 : Option(lib.TreeLocation);
+}
+
+struct GrantRemoteViewPermissionPayload @0xc83da7560434c870 {
+    viewee @0 : lib.PartyID;
+    viewer @1 : lib.FQParty;
+    tm @2 : lib.Time;
+}
+
+struct LocalTeamListEntry {
+    id @0 : lib.TeamID;
+    srcRole @1 : lib.Role;
+    dstRole @2 : lib.Role;
+    seqno @3 : lib.Seqno;
+    keyGen @4 : lib.Generation;
+}
+
+struct NamedLocalTeamListEntry {
+    te @0 : LocalTeamListEntry;
+    name @1 : lib.NameUtf8;
+    quotaMaster @2 : Option(lib.UID);
+}
+
+typedef NamedLocalTeamList = List(NamedLocalTeamListEntry);
+typedef LocalTeamList = List(LocalTeamListEntry);
+
+enum EntityIDMerkleValueVersion {
+    V1 @1;
+}
+
+variant EntityIDMerkleValue switch (v : EntityIDMerkleValueVersion) @0xd3d21c7dc1d64ea1 {
+    case V1 @1: lib.EntityID;
+}
+
+struct TreeLocationPair {
+    seqno @0 : lib.Seqno;
+    loc @1 : lib.TreeLocation;
+}
+
+struct YubiEncryptedManagementKey {
+    yk @0 : lib.YubiID;
+    box @1 : lib.SecretBox;
+    gen @2 : lib.Generation;
+    role @3 : lib.Role;
+}
+
+protocol User 
+    errors lib.Status 
+    argHeader lib.Header 
+    resHeader lib.Header @0x823f0899 {
+
+    ping @0 () -> lib.UID;
+
+    setPassphrase @1 (
+        key @0 : lib.EntityID,
+        salt @1 : lib.PassphraseSalt,
+        skwkBox @2 : lib.SecretBox,
+        passphraseBox @3 : lib.PpePassphraseBox,
+        pukBox @4 : Option(lib.PpePUKBox),
+        stretchVersion @5 : lib.StretchVersion,
+        link @6 : lib.LinkOuter, // generic chain link for passphrase parameters
+        nextTreeLocation @7 : lib.TreeLocation,
+        userSettingsLink @8 : Option(PostGenericLinkArg)
+    );
+
+    changePassphrase @2 (
+        key @0 : lib.EntityID,
+        skwkBox @1 : lib.SecretBox,
+        passphraseBox @2 : lib.PpePassphraseBox,
+        pukBox @3 : Option(lib.PpePUKBox),
+        stretchVersion @4 : lib.StretchVersion,
+        ppGen @5 : lib.PassphraseGeneration,
+        userSettingsLink @6 : Option(PostGenericLinkArg)
+    );
+
+    getSalt @3 () -> lib.PassphraseSalt;
+    nextPassphraseGeneration @4 () -> lib.PassphraseGeneration;
+    stretchVersion @5 () -> lib.StretchVersion;
+
+    provisionDevice @6 (
+        link @0 : lib.LinkOuter,
+        pukBoxes @1 : lib.SharedKeyBoxSet,
+        dlnc @2 : DeviceLabelNameAndCommitmentKey,
+        nextTreeLocation @3 : lib.TreeLocation,
+        subkeyBox @4 : Option(lib.Box),
+        selfToken @5 : lib.PermissionToken,
+        hepks @6 : lib.HEPKSet,
+        yubiPQhint @14 : Option(lib.YubiSlotAndPQKeyID)
+    );
+
+    revokeDevice @7 (
+        link @0 : lib.LinkOuter,
+        pukBoxes @1 : lib.SharedKeyBoxSet,
+        seedChain @2 : List(lib.SeedChainBox),
+        nextTreeLocation @3 : lib.TreeLocation,
+        ppa @4 : Option(SetPassphraseAnnex),
+        hepks @5 : lib.HEPKSet
+    );
+
+    loadUserChain @9 (
+        a @0 : LoadUserChainArg
+    ) : UserLoadUserChainArg -> UserChain;
+
+    grantLocalViewPermissionForUser @10 (
+        p @0 : GrantLocalViewPermissionPayload
+    ) -> lib.PermissionToken;
+
+    changeUsername @11 (
+        usernameUtf8 @0 : lib.NameUtf8,
+        full @1 : Option(ChangedUsernameFullUpdateArg)
+    );
+
+    reserveUsernameForChange @12 (
+        un @0 : lib.Name
+    ) -> ReserveNameRes;
+
+    // XXX - we might not need this at all -- TO REMOVE
+    getTreeLocation @13 (
+        seqno @0 : lib.Seqno
+    ) -> lib.TreeLocation;
+
+    getPUKForRole @14 (
+        role @0 : lib.Role,
+        targetPublicKeyId @1 : lib.EntityID
+    ) -> lib.SharedKeyParcel;
+
+    getPpeParcel @15 () -> lib.PpeParcel;
+
+    postGenericLink @16 (
+        link @0 : lib.LinkOuter,
+        nextTreeLocation @1 : lib.TreeLocation
+    );
+
+    loadGenericChain @17 (
+        eid @0 : lib.EntityID,
+        typ @1 : lib.ChainType,
+        start @2 : lib.Seqno
+    ) -> GenericChain;
+
+    grantRemoteViewPermissionForUser @18 (
+        p @0 : GrantRemoteViewPermissionPayload
+    ) -> lib.PermissionToken;
+
+    getTeamListServerTrust @19 (
+    ) -> LocalTeamList;
+
+    assertPQKeyNotInUse @20 (
+        pqKey @0 : lib.YubiPQKeyID
+    );
+
+    newWebAdminPanelURL @21 (
+    ) -> lib.URLString;
+
+    checkURL @22 (
+        url @0 : lib.URLString
+    );
+
+    resolveUsername @23 (
+        a @0 : ResolveUsernameArg 
+    ) : UserResolveUsernameArg -> lib.UID;
+
+    getHostConfig @24 () -> lib.HostConfig;
+
+    getDeviceNag @25 () -> lib.DeviceNagInfo;
+    clearDeviceNag @26 ( cleared @0 : Bool );
+
+    putYubiManagementKey @27 (
+        ymk @0 : YubiEncryptedManagementKey
+    );
+    getYubiManagementKey @28 (
+        yk @0 : lib.YubiID
+    ) -> YubiEncryptedManagementKey;
+    getAllYubiManagementKeys @29 (
+    ) -> List(YubiEncryptedManagementKey);
+}
