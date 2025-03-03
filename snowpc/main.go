@@ -3,10 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
+
+	"github.com/foks-proj/go-snowpack-compiler/lib"
 )
 
 func mainWithErr() error {
-	opts, err := ParseOpts()
+	opts, err := lib.ParseOpts()
 	if err != nil {
 		return err
 	}

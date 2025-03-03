@@ -1,4 +1,4 @@
-package main
+package lib
 
 type Runner struct {
 	opts *Options
