@@ -89,6 +89,7 @@ const (
 	ttSwitch
 	ttEof
 	ttNone
+	ttErr
 )
 
 type nextState struct {
@@ -159,6 +160,8 @@ func lexDash(l *Lexer) nextState {
 		l.backup()
 		return lexNumber(l)
 	}
+
+	return nextState{t: ttErr}
 }
 
 func (l *Lexer) eat() {
@@ -191,6 +194,9 @@ func (l *Lexer) run() {
 			state = ns.f
 		case ttSwitch:
 			state = ns.f
+		case ttErr:
+			l.emit(TokenError)
+			state = nil
 		case ttEof:
 			l.emit(TokenEOF)
 			state = nil
