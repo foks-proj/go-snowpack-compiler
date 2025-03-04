@@ -109,27 +109,60 @@ func newLexer(
 	}
 }
 
+const RuneEOF = -1
+
+func (l *Lexer) nextRune() rune {
+	if l.pos >= len(l.input) {
+		return RuneEOF
+	}
+	r, w := utf8.DecodeRuneInString(l.input[l.pos:])
+	l.width = w
+	l.pos += w
+	return r
+}
+
 func initialState(l *Lexer) nextState {
 
 	for {
-		if l.pos >= len(l.input) {
-			l.emit(TokenEOF)
+		r := l.nextRune()
+		if r == RuneEOF {
 			return nextState{t: ttEof}
 		}
-		r, w := utf8.DecodeRuneInString(l.input[l.pos:])
-		l.width = w
-		l.pos += w
-
 		if isLetter(r) {
 			l.backup()
 			return lexIdentifier(l)
 		}
-		if isDigit(r) || r == '-' {
+		if isDigit(r) {
 			l.backup()
 			return lexNumber(l)
 		}
+		switch r {
+		case ' ', '\t', '\n', '\r':
+			l.eat()
+		case '-':
+			return nextState{t: ttPush, f: lexDash}
+		}
 	}
 	return nextState{t: ttEof}
+}
+
+func lexDash(l *Lexer) nextState {
+	r := l.nextRune()
+	if r == RuneEOF {
+		return nextState{t: ttEof}
+	}
+	if r == '>' {
+		l.emit(TokenArrow)
+		return nextState{t: ttPop}
+	}
+	if isDigit(r) {
+		l.backup()
+		return lexNumber(l)
+	}
+}
+
+func (l *Lexer) eat() {
+	l.start = l.pos
 }
 
 func Lex(
@@ -159,6 +192,7 @@ func (l *Lexer) run() {
 		case ttSwitch:
 			state = ns.f
 		case ttEof:
+			l.emit(TokenEOF)
 			state = nil
 		}
 	}
