@@ -1,13 +1,63 @@
 package lib
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 )
 
+type File struct {
+	name string
+}
+
+func (f *File) isStdPipe() bool {
+	return f.name == "" || f.name == "-"
+}
+
+func (f *File) Filename(def string) string {
+	if f.isStdPipe() {
+		return def
+	}
+	return f.name
+}
+
+type Infile struct {
+	File
+}
+
+func (i *Infile) Read() ([]byte, error) {
+
+	var rc io.ReadCloser
+	if i.isStdPipe() {
+		rc = os.Stdin
+	} else {
+		var err error
+		rc, err = os.Open(i.name)
+		if err != nil {
+			return nil, err
+		}
+	}
+	defer rc.Close()
+	return io.ReadAll(rc)
+}
+
+func (i *Infile) Name() string {
+	if i.isStdPipe() {
+		return "<stdin>"
+	}
+	return i.name
+}
+
+type Outfile struct {
+	File
+}
+
+func newOutfile(f string) Outfile { return Outfile{File: File{name: f}} }
+func newInfile(f string) Infile   { return Infile{File: File{name: f}} }
+
 type FilePair struct {
-	infile  string
-	outfile string
+	infile  Infile
+	outfile Outfile
 }
 
 type FileSet struct {
@@ -30,8 +80,8 @@ func (f *FileSet) buildFromDir(o *Options) error {
 		basename := ent.Name()[:len(ent.Name())-len(ext)]
 
 		fp := FilePair{
-			infile:  filepath.Join(o.indir, ent.Name()),
-			outfile: filepath.Join(o.outdir, basename+"."+o.lang.OutExt()),
+			infile:  newInfile(filepath.Join(o.indir, ent.Name())),
+			outfile: newOutfile(filepath.Join(o.outdir, basename+"."+o.lang.OutExt())),
 		}
 		f.files = append(f.files, fp)
 	}
@@ -43,13 +93,41 @@ func (f *FileSet) Build(opts *Options) error {
 		return f.buildFromDir(opts)
 	}
 	fp := FilePair{
-		infile:  opts.infile,
-		outfile: opts.outfile,
+		infile:  newInfile(opts.infile),
+		outfile: newOutfile(opts.outfile),
 	}
 	f.files = append(f.files, fp)
 	return nil
 }
 
 func (f *FilePair) run(o *Options) error {
+	md := NewMetadata(f, o)
+	return md.run()
+}
+
+type Metadata struct {
+	infile  Infile
+	outfile Outfile
+	lang    Language
+	pkg     string
+}
+
+func NewMetadata(fp *FilePair, o *Options) Metadata {
+	return Metadata{
+		infile:  fp.infile,
+		outfile: fp.outfile,
+		lang:    o.lang,
+		pkg:     o.pkg,
+	}
+}
+
+func (m *Metadata) run() error {
+	indat, err := m.infile.Read()
+	if err != nil {
+		return err
+	}
+	lexer := newLexer(indat, m.infile.Name())
+	use := func(a any) {}
+	use(lexer)
 	return ErrNotImplemented
 }
