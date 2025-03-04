@@ -1,6 +1,9 @@
 package lib
 
-import "unicode/utf8"
+import (
+	"regexp"
+	"unicode/utf8"
+)
 
 type Lexer struct {
 	input    string
@@ -9,6 +12,8 @@ type Lexer struct {
 	start int
 	pos   int
 	width int
+
+	savePoint int
 
 	tokens chan token
 }
@@ -89,6 +94,7 @@ const (
 	ttSwitch
 	ttEof
 	ttNone
+	ttKeep
 	ttErr
 )
 
@@ -131,7 +137,7 @@ func initialState(l *Lexer) nextState {
 		}
 		if isLetter(r) {
 			l.backup()
-			return lexIdentifier(l)
+			return nextState{t: ttPush, f: lexIdentifier}
 		}
 		if isDigit(r) {
 			l.backup()
@@ -141,27 +147,133 @@ func initialState(l *Lexer) nextState {
 		case ' ', '\t', '\n', '\r':
 			l.eat()
 		case '-':
-			return nextState{t: ttPush, f: lexDash}
+			return lexDash(l)
+		case ';':
+			l.emit(TokenSemicolon)
+		case '.':
+			l.emit(TokenDot)
+		case ',':
+			l.emit(TokenComma)
+		case ':':
+			l.emit(TokenColon)
+		case '{':
+			l.emit(TokenLBrace)
+		case '}':
+			l.emit(TokenRBrace)
+		case '(':
+			l.emit(TokenLParen)
+		case ')':
+			l.emit(TokenRParen)
+		case '[':
+			l.emit(TokenLBracket)
+		case ']':
+			l.emit(TokenRBracket)
+		case '@':
+			l.emit(TokenAt)
+		case '=':
+			l.emit(TokenEquals)
+		case '/':
+			return lexFrontSlash(l)
+		case '"':
+			return nextState{t: ttPush, f: lexDQuotedString}
+		default:
+			return nextState{t: ttErr}
 		}
 	}
-	return nextState{t: ttEof}
+}
+
+func lexFrontSlash(l *Lexer) nextState {
+	r := l.nextRune()
+	switch r {
+	case '/':
+		return nextState{t: ttPush, f: lexCppStyleComment}
+	case '*':
+		return lexCStyleComment(l)
+	}
+	return nextState{t: ttErr}
+}
+
+func lexDQuotedString(l *Lexer) nextState {
+	start := l.pos
+	for {
+		r := l.nextRune()
+		switch r {
+		case RuneEOF:
+			return nextState{t: ttEof}
+		case '\n':
+			return nextState{t: ttErr}
+		case '"':
+			str := l.input[start : l.pos-1]
+			l.tokens <- token{typ: TokenDQoutedString, val: str}
+			l.start = l.pos
+			return nextState{t: ttPop}
+		}
+	}
+}
+
+func lexCStyleComment(l *Lexer) nextState {
+
+	r := l.nextRune()
+	switch r {
+	case '*':
+		return nextState{t: ttPush, f: func(l *Lexer) nextState { return lexDocString(l, true) }}
+	case RuneEOF:
+		return nextState{t: ttErr}
+	default:
+		l.backup()
+		return nextState{t: ttPush, f: func(l *Lexer) nextState { return lexDocString(l, false) }}
+	}
+}
+
+func lexDocString(l *Lexer, emit bool) nextState {
+	start := l.pos
+	for {
+		loopPos := l.pos
+		r := l.nextRune()
+		if r == RuneEOF {
+			return nextState{t: ttEof}
+		}
+		if r != '*' {
+			continue
+		}
+		r = l.nextRune()
+		if r == RuneEOF {
+			return nextState{t: ttEof}
+		}
+		if r == '/' {
+			if emit {
+				l.tokens <- token{typ: TokenDocFrag, val: l.input[start:loopPos]}
+				l.start = l.pos
+			}
+			return nextState{t: ttPop}
+		}
+	}
+}
+func lexCppStyleComment(l *Lexer) nextState {
+	for {
+		r := l.nextRune()
+		if r == RuneEOF || r == '\n' {
+			return nextState{t: ttPop}
+		}
+	}
 }
 
 func lexDash(l *Lexer) nextState {
+	l.markSavePoint()
 	r := l.nextRune()
 	if r == RuneEOF {
 		return nextState{t: ttEof}
 	}
-	if r == '>' {
+	switch {
+	case r == '>':
 		l.emit(TokenArrow)
-		return nextState{t: ttPop}
-	}
-	if isDigit(r) {
-		l.backup()
+		return nextState{t: ttKeep}
+	case isDigit(r):
+		l.restoreSavePoint()
 		return lexNumber(l)
+	default:
+		return nextState{t: ttErr}
 	}
-
-	return nextState{t: ttErr}
 }
 
 func (l *Lexer) eat() {
@@ -200,6 +312,8 @@ func (l *Lexer) run() {
 		case ttEof:
 			l.emit(TokenEOF)
 			state = nil
+		case ttKeep:
+			// noop, keep the current state
 		}
 	}
 	close(l.tokens)
@@ -207,6 +321,14 @@ func (l *Lexer) run() {
 
 func (l *Lexer) backup() {
 	l.pos -= l.width
+}
+
+func (l *Lexer) markSavePoint() {
+	l.savePoint = l.pos
+}
+
+func (l *Lexer) restoreSavePoint() {
+	l.pos = l.savePoint
 }
 
 func (l *Lexer) emit(t TokenType) {
@@ -226,92 +348,115 @@ func (l *Lexer) txt() string {
 	return l.input[l.start:l.pos]
 }
 
+var uint32rxx = regexp.MustCompile(`^0x[0-9a-fA-F]{8}$`)
+var uint64rxx = regexp.MustCompile(`^0x[0-9a-fA-F]{16}$`)
+var intrxx = regexp.MustCompile(`^-?[0-9]+$`)
+
 func lexNumber(l *Lexer) nextState {
 	for {
 		r, w := utf8.DecodeRuneInString(l.input[l.pos:])
-		if !isDigit(r) && r != '-' {
+		if !isDigit(r) && r != '-' && r != 'x' && (r < 'a' || r > 'f') {
 			break
 		}
 		l.pos += w
 	}
-	l.emit(TokenIntVal)
-	return nextState{t: ttPop}
+	var typ TokenType
+	switch {
+	case uint64rxx.MatchString(l.txt()):
+		typ = TokenUint64Val
+	case uint32rxx.MatchString(l.txt()):
+		typ = TokenUint32Val
+	case intrxx.MatchString(l.txt()):
+		typ = TokenIntVal
+	default:
+		return nextState{t: ttErr}
+	}
+	l.emit(typ)
+	return nextState{t: ttKeep}
 }
 
-func (l *Lexer) emitIdentifier() {
-	switch l.txt() {
+func (l *Lexer) emitIdentifier(start int) {
+	txt := l.input[start:l.pos]
+	var typ TokenType
+	switch txt {
 	case "typedef":
-		l.emit(TokenTypedef)
+		typ = TokenTypedef
 	case "List":
-		l.emit(TokenList)
+		typ = TokenList
 	case "Option":
-		l.emit(TokenOption)
+		typ = TokenOption
 	case "Blob":
-		l.emit(TokenBlob)
+		typ = TokenBlob
 	case "struct":
-		l.emit(TokenStruct)
+		typ = TokenStruct
 	case "Text":
-		l.emit(TokenText)
+		typ = TokenText
 	case "Uint":
-		l.emit(TokenUint)
+		typ = TokenUint
 	case "Int":
-		l.emit(TokenInt)
+		typ = TokenInt
 	case "Bool":
-		l.emit(TokenBool)
+		typ = TokenBool
 	case "enum":
-		l.emit(TokenEnum)
+		typ = TokenEnum
 	case "variant":
-		l.emit(TokenVariant)
+		typ = TokenVariant
 	case "case":
-		l.emit(TokenCase)
+		typ = TokenCase
 	case "switch":
-		l.emit(TokenSwitch)
+		typ = TokenSwitch
 	case "void":
-		l.emit(TokenVoid)
+		typ = TokenVoid
 	case "default":
-		l.emit(TokenDefault)
+		typ = TokenDefault
 	case "protocol":
-		l.emit(TokenProtocol)
+		typ = TokenProtocol
 	case "errors":
-		l.emit(TokenErrors)
+		typ = TokenErrors
 	case "true":
-		l.emit(TokenTrue)
+		typ = TokenTrue
 	case "false":
-		l.emit(TokenFalse)
+		typ = TokenFalse
 	case "argHeader":
-		l.emit(TokenArgHeader)
+		typ = TokenArgHeader
 	case "resHeader":
-		l.emit(TokenResHeader)
+		typ = TokenResHeader
 	case "import":
-		l.emit(TokenImport)
+		typ = TokenImport
 	case "go:import":
-		l.emit(TokenGoImport)
+		typ = TokenGoImport
 	case "ts:import":
-		l.emit(TokenTypeScriptImpot)
+		typ = TokenTypeScriptImpot
 	case "as":
-		l.emit(TokenAs)
+		typ = TokenAs
 	case "Future":
-		l.emit(TokenFuture)
+		typ = TokenFuture
 	default:
-		l.emit(TokenIdentifier)
+		typ = TokenIdentifier
 	}
+	l.tokens <- token{typ: typ, val: txt}
+	l.start = l.pos
 }
 
 func lexIdentifier(l *Lexer) nextState {
+	start := l.pos
 	for {
-		r, w := utf8.DecodeRuneInString(l.input[l.pos:])
+		r := l.nextRune()
 
 		// There is one case where it's OK to have a colon in the
 		// middle of an indentifier.
 		isOkCol := false
-		if r == ':' && (l.txt() == "go" || l.txt() == "ts") {
-			isOkCol = true
+		if r == ':' {
+			txt := l.input[start:l.pos]
+			if txt == "go:" || txt == "ts:" {
+				isOkCol = true
+			}
 		}
-		if !isLetter(r) && !isDigit(r) && isOkCol {
+		if !isLetter(r) && !isDigit(r) && !isOkCol {
+			l.backup()
 			break
 		}
-		l.pos += w
 	}
-	l.emitIdentifier()
+	l.emitIdentifier(start)
 	return nextState{t: ttPop}
 }

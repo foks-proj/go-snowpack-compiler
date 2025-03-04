@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -126,8 +127,9 @@ func (m *Metadata) run() error {
 	if err != nil {
 		return err
 	}
-	lexer := newLexer(indat, m.infile.Name())
-	use := func(a any) {}
-	use(lexer)
+	lexer := Lex(indat, m.infile.Name())
+	for tok := range lexer.tokens {
+		fmt.Printf("tok: %v\n", tok)
+	}
 	return ErrNotImplemented
 }
