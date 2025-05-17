@@ -15,7 +15,8 @@ type Lexer struct {
 
 	savePoint int
 
-	tokens chan token
+	tokens  chan token
+	chanEof bool
 }
 
 type token struct {
@@ -29,8 +30,6 @@ const (
 	TokenEOF TokenType = iota
 	TokenError
 
-	TokenAt
-	TokenUint64Val
 	TokenUint32Val
 
 	TokenTypedef
@@ -66,7 +65,6 @@ const (
 	TokenFuture
 
 	TokenArrow
-	TokenSemicolon
 	TokenDot
 	TokenComma
 	TokenColon
@@ -287,6 +285,21 @@ func Lex(
 	l := newLexer(data, filename)
 	go l.run()
 	return l
+}
+
+func (l *Lexer) next() token {
+	if l.chanEof {
+		return token{typ: TokenEOF}
+	}
+	ret, ok := <-l.tokens
+	if !ok {
+		l.chanEof = true
+		return token{typ: TokenEOF}
+	}
+	if ret.typ == TokenEOF {
+		l.chanEof = true
+	}
+	return ret
 }
 
 func (l *Lexer) run() {

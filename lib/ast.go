@@ -1,7 +1,7 @@
 package lib
 
 type UniqueID struct {
-	Val uint64
+	Val string // is a number, but we don't bother to parse it
 }
 
 type FileNode struct {
