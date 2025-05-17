@@ -95,8 +95,39 @@ type Struct struct {
 	Fields []Field
 }
 
+type CaseLabel interface {
+}
+
+type CaseLabelIdentifier struct {
+	Ident Identifier
+}
+
+type CaseLabelNumber struct {
+	Num int
+}
+
+type CaseLabelBool struct {
+	Bool bool
+}
+
+type Case struct {
+	Labels   []CaseLabel // nil for default case
+	Position *int        // will be nil for void data; 0 is a valid position
+	Type     Type
+}
+
+type Variant struct {
+	BaseTypedef
+	SwitchVar  Identifier
+	SwitchType Type
+	Cases      []Case
+}
+
 type Option struct {
 	Type Type
+}
+
+type Void struct {
 }
 
 type Text struct{}
@@ -104,6 +135,9 @@ type Uint struct{}
 type Int struct{}
 type Bool struct{}
 
+var _ CaseLabel = CaseLabelIdentifier{}
+var _ CaseLabel = CaseLabelNumber{}
+var _ CaseLabel = CaseLabelBool{}
 var _ Statement = Typedef{}
 var _ Type = List{}
 var _ Type = Future{}
@@ -112,5 +146,6 @@ var _ Type = Uint{}
 var _ Type = Int{}
 var _ Type = Bool{}
 var _ Type = Option{}
+var _ Type = Void{}
 var _ Importer = GenericImport{}
 var _ Importer = TypeScriptImport{}

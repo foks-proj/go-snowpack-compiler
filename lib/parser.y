@@ -25,26 +25,38 @@ import (
     count    int
     field    Field
     fields   []Field
+    cases    []Case
+    cas      Case
+    intp     *int
+
+    caseLabel  CaseLabel
+    caseLabels []CaseLabel
 }
 
 %type <file> top
 %type <uniqueId> fileID uniqueID uniqueIDOpt
 %type <stmts> statements
-%type <stmt> statement typedef struct
+%type <stmt> statement typedef struct variant
 %type <imprt> import genericImport tsImport goImport
 %type <dec> decorators
 %type <doc> doc 
 %type <docRaw> docRaw
 %type <ident> identifier
-%type <typ> list type simpleType typeOrFuture blob dottedIdentifier future typeOrOptional optionalType
+%type <typ> list type simpleType typeOrFuture blob dottedIdentifier future typeOrOptional optionalType typeOrVoid
 %type <count> countOpt number position
 %type <field> field
 %type <fields> fields
+%type <cases> cases
+%type <cas> case normalCase
+%type <caseLabel> caseLabel
+%type <caseLabels> caseLabels
+%type <intp> positionOpt
 
 %token TokenAt TokenSemicolon TokenAs TokenEquals TokenDot
 %token TokenImport TokenTypeScriptImport TokenGoImport
 %token TokenList TokenLParen TokenRParen TokenText TokenUint TokenInt TokenBool TokenBlob TokenFuture
-%token TokenLBrace TokenRBrace TokenStruct TokenOption TokenColon
+%token TokenLBrace TokenRBrace TokenStruct TokenOption TokenColon TokenVariant TokenSwitch TokenCase
+%token TokenTrue TokenFalse TokenDefault TokenVoid
 
 %token <rawval> TokenUint64Val TokenIntVal
 %token <rawval> TokenDQoutedString TokenIdentifier TokenDoc TokenTypedef 
@@ -209,6 +221,15 @@ typedef:
 
 position: TokenAt number { $$ = $2 };
 
+positionOpt 
+    : /* empty */ { $$ = nil }
+    | position
+    {
+        tmp := $1
+        $$ = &tmp
+    }
+    ;
+
 optionalType
     : TokenOption TokenLParen type TokenRParen
     {
@@ -232,7 +253,6 @@ field:
     }
     ;
 
-
 fields 
     : /* empty */ { $$ = []Field{} }
     | fields field
@@ -255,6 +275,63 @@ struct:
     }
     ;
 
+cases
+    : case { $$ = []Case{ $1 } }
+    | cases case { $$ = append($1, $2) }
+    ;
+
+case
+    : normalCase  { $$ = $1 }
+    ;
+
+caseLabels
+    : caseLabel { $$ = []CaseLabel{ $1 } }
+    | caseLabels caseLabel
+    {
+        $$ = append($1, $2)
+    }
+    ;
+
+caseLabel 
+    : identifier { $$ = CaseLabelIdentifier{ Ident: $1 } }
+    | number { $$ = CaseLabelNumber{ Num: $1 } }
+    | TokenTrue { $$ = CaseLabelBool{ Bool: true } }
+    | TokenFalse { $$ = CaseLabelBool{ Bool: false } }
+    ;
+
+typeOrVoid
+    : type { $$ = $1 }
+    | TokenVoid { $$ = Void{} }
+    ;
+
+normalCase
+    : TokenCase caseLabels positionOpt TokenColon typeOrVoid TokenSemicolon
+    {
+        $$ = Case{
+            Labels : $2,
+            Position : $3,
+            Type : $5,
+        }
+    }
+    ;
+
+variant:
+    decorators TokenVariant identifier TokenSwitch 
+        TokenLParen identifier TokenColon simpleType TokenRParen uniqueIDOpt
+        TokenLBrace cases TokenRBrace
+    {
+        $$ = Variant{
+            BaseTypedef : BaseTypedef{
+                BaseStatement: BaseStatement{ Dec : $1 }, 
+                Ident : $3, 
+                UniqueID : $10,
+            },
+            SwitchVar : $6,
+            SwitchType : $8,
+        }
+    }
+    ;
+
 import: 
     genericImport { $$ = $1 }
     | tsImport    { $$ = $1 }
@@ -265,6 +342,7 @@ statement
     : import   { $$ = $1 }
     | typedef  { $$ = $1 }
     | struct   { $$ = $1 }
+    | variant  { $$ = $1 }
     ;
 
 identifier:

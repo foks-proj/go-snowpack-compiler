@@ -34,14 +34,6 @@ const (
 	TokenUint32Val
 
 	TokenEnum
-	TokenVariant
-	TokenCase
-	TokenSwitch
-	TokenVoid
-	TokenDefault
-
-	TokenFalse
-	TokenTrue
 
 	TokenProtocol
 	TokenErrors
