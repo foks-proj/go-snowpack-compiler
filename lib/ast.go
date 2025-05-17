@@ -70,9 +70,14 @@ type List struct {
 	Type Type
 }
 
+type Blob struct {
+	Count int
+}
+
 type Text struct{}
 type Uint struct{}
 type Int struct{}
+type Bool struct{}
 
 var _ Statement = Typedef{}
 var _ Type = List{}
@@ -80,5 +85,6 @@ var _ Type = Future{}
 var _ Type = Text{}
 var _ Type = Uint{}
 var _ Type = Int{}
+var _ Type = Bool{}
 var _ Importer = GenericImport{}
 var _ Importer = TypeScriptImport{}

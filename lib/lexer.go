@@ -34,9 +34,7 @@ const (
 	TokenUint32Val
 
 	TokenOption
-	TokenBlob
 	TokenStruct
-	TokenBool
 
 	TokenEnum
 	TokenVariant
@@ -63,8 +61,6 @@ const (
 	TokenRBrace
 	TokenLBracket
 	TokenRBracket
-
-	TokenIntVal
 )
 
 type transitionType int

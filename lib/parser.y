@@ -2,6 +2,11 @@
 %{
 package lib
 
+import (
+    "fmt"
+    "strconv"
+)
+
 %}
 
 %union {
@@ -17,6 +22,7 @@ package lib
     docRaw   string
     ident    Identifier
     typ      Type
+    count    int
 }
 
 %type <file> top
@@ -28,13 +34,14 @@ package lib
 %type <doc> doc 
 %type <docRaw> docRaw
 %type <ident> identifier
-%type <typ> list type simpleType typeOrFuture
+%type <typ> list type simpleType typeOrFuture blob
+%type <count> countOpt
 
 %token TokenAt TokenSemicolon TokenAs TokenEquals
 %token TokenImport TokenTypeScriptImport TokenGoImport
-%token TokenList TokenLParen TokenRParen TokenText TokenUint TokenInt
+%token TokenList TokenLParen TokenRParen TokenText TokenUint TokenInt TokenBool TokenBlob
 
-%token <rawval> TokenUint64Val
+%token <rawval> TokenUint64Val TokenIntVal
 %token <rawval> TokenDQoutedString TokenIdentifier TokenDoc TokenTypedef 
 
 %%
@@ -110,10 +117,36 @@ list:
     }
     ;
 
-simpleType:
-    TokenUint   { $$ = Uint{} }
+countOpt:
+    /* empty */ { $$ = 0 }
+    | TokenLParen TokenIntVal TokenRParen
+    {
+        var i int
+        i, err := strconv.Atoi($2)
+        if err != nil {
+            parseErr = err
+        } else if i <= 0 {
+            parseErr = fmt.Errorf("blob byte-count must be greater than 0")
+        } else {
+            $$ = i
+        }
+    }
+    ;
+
+blob
+    : TokenBlob countOpt
+    {
+        $$ = Blob{ Count: $2 }
+    }
+    ;
+
+
+simpleType
+    : TokenUint { $$ = Uint{} }
     | TokenInt  { $$ = Int{} }
     | TokenText { $$ = Text{} }
+    | TokenBool { $$ = Bool{} }
+    | blob      { $$ = $1 }
     ; 
 
 type:

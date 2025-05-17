@@ -14,7 +14,8 @@ func (s *snowpLex) Lex(yylval *snowpSymType) int {
 	return int(tok.typ)
 }
 
-var lexError error
+var lexErr error
+var parseErr error
 var top *FileNode
 
 type LexerError struct {
@@ -28,7 +29,7 @@ func (e LexerError) Error() string {
 }
 
 func (s *snowpLex) Error(es string) {
-	lexError = LexerError{Msg: es, Filename: s.l.filename, Line: s.l.lineno}
+	lexErr = LexerError{Msg: es, Filename: s.l.filename, Line: s.l.lineno}
 }
 
 func Parse(
@@ -41,11 +42,14 @@ func Parse(
 	lexer := Lex(indat, nm)
 	l := &snowpLex{l: lexer}
 	ret := snowpParse(l)
+	if parseErr != nil {
+		return nil, parseErr
+	}
 	if ret != 0 {
 		return nil, fmt.Errorf("parse error in file %s", nm)
 	}
-	if lexError != nil {
-		return nil, lexError
+	if lexErr != nil {
+		return nil, lexErr
 	}
 	return top, nil
 }
