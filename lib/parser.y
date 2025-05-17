@@ -12,25 +12,27 @@ package lib
     stmts    []Statement
     stmt     Statement
     imprt    Importer
-    dec      *Decorators
+    dec      Decorators
     doc      Docstring
     docRaw   string
+    ident    Identifier
 }
 
 %type <file> top
-%type <uniqueId> fileID uniqueID
+%type <uniqueId> fileID uniqueID uniqueIDOpt
 %type <stmts> statements
 %type <stmt> statement typedef
 %type <imprt> import genericImport tsImport goImport
 %type <dec> decorators
 %type <doc> doc 
 %type <docRaw> docRaw
+%type <ident> identifier
 
 %token TokenAt TokenSemicolon TokenAs
 %token TokenImport TokenTypeScriptImport TokenGoImport
 
 %token <rawval> TokenUint64Val
-%token <rawval> TokenDQoutedString TokenIdentifier TokenDoc TokenTypedef
+%token <rawval> TokenDQoutedString TokenIdentifier TokenDoc TokenTypedef 
 
 %%
 
@@ -53,21 +55,21 @@ statements:
 genericImport: 
     TokenImport TokenDQoutedString TokenAs TokenIdentifier TokenSemicolon
     { 
-        $$ = &GenericImport{ BaseImport : BaseImport { Path: $2, Name : $4 }  }
+        $$ = GenericImport{ BaseImport : BaseImport { Path: $2, Name : $4 }  }
     }
     ;
 
 tsImport: 
     TokenTypeScriptImport TokenDQoutedString TokenAs TokenIdentifier TokenSemicolon
     { 
-        $$ = &TypeScriptImport{ BaseImport : BaseImport { Path: $2, Name : $4 } }
+        $$ = TypeScriptImport{ BaseImport : BaseImport { Path: $2, Name : $4 } }
     } 
     ;
 
 goImport: 
     TokenGoImport TokenDQoutedString TokenAs TokenIdentifier TokenSemicolon
     { 
-        $$ = &GoImport { BaseImport : BaseImport { Path: $2, Name : $4 } }
+        $$ = GoImport { BaseImport : BaseImport { Path: $2, Name : $4 } }
     } 
     ;
 
@@ -86,15 +88,26 @@ docRaw
     }
     ;
 
-
 decorators:
-    doc { $$ = &Decorators{ Doc: $1 } }
+    doc { $$ = Decorators{ Doc: $1 } }
+    ;
+
+uniqueIDOpt
+    : { $$ = UniqueID{} }
+    | uniqueID
+    {
+        $$ = $1;
+    }
     ;
 
 typedef:
-    decorators TokenTypedef 
+    decorators TokenTypedef identifier uniqueIDOpt
     {
-        $$ = &Typedef{}
+        $$ = Typedef{
+            BaseStatement: BaseStatement{ Dec : $1 }, 
+            Ident : $3, 
+            UniqueID : $4,
+        }
     }
     ;
 
@@ -109,8 +122,15 @@ statement:
     | typedef { $$ = $1 }
     ;
 
+identifier:
+    TokenIdentifier
+    {
+        $$ = Identifier{ Name : $1 }
+    }
+    ;
+
 fileID:
-    uniqueID TokenSemicolon
+    uniqueID TokenSemicolon identifier
     {
         $$ = $1
     }

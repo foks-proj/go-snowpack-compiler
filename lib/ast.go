@@ -4,12 +4,20 @@ type UniqueID struct {
 	Val string // is a number, but we don't bother to parse it
 }
 
+func (u UniqueID) IsSet() bool {
+	return u.Val != ""
+}
+
 type FileNode struct {
 	Id    UniqueID
 	Stmts []Statement
 }
 
 type Statement interface {
+}
+
+type BaseStatement struct {
+	Dec Decorators
 }
 
 type Importer interface {
@@ -34,6 +42,9 @@ type GoImport struct {
 }
 
 type Typedef struct {
+	BaseStatement
+	Ident    Identifier
+	UniqueID UniqueID
 }
 
 type Decorators struct {
@@ -44,7 +55,11 @@ type Docstring struct {
 	Raw string
 }
 
-var _ Statement = &Typedef{}
+type Identifier struct {
+	Name string
+}
 
-var _ Importer = &GenericImport{}
-var _ Importer = &TypeScriptImport{}
+var _ Statement = Typedef{}
+
+var _ Importer = GenericImport{}
+var _ Importer = TypeScriptImport{}
