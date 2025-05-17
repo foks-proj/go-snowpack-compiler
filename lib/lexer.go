@@ -33,13 +33,9 @@ const (
 
 	TokenUint32Val
 
-	TokenList
 	TokenOption
 	TokenBlob
 	TokenStruct
-	TokenText
-	TokenUint
-	TokenInt
 	TokenBool
 
 	TokenEnum
@@ -65,12 +61,8 @@ const (
 	TokenColon
 	TokenLBrace
 	TokenRBrace
-	TokenLParen
-	TokenRParen
 	TokenLBracket
 	TokenRBracket
-
-	TokenEquals
 
 	TokenIntVal
 )

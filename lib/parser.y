@@ -16,6 +16,7 @@ package lib
     doc      Docstring
     docRaw   string
     ident    Identifier
+    typ      Type
 }
 
 %type <file> top
@@ -27,9 +28,11 @@ package lib
 %type <doc> doc 
 %type <docRaw> docRaw
 %type <ident> identifier
+%type <typ> list type simpleType typeOrFuture
 
-%token TokenAt TokenSemicolon TokenAs
+%token TokenAt TokenSemicolon TokenAs TokenEquals
 %token TokenImport TokenTypeScriptImport TokenGoImport
+%token TokenList TokenLParen TokenRParen TokenText TokenUint TokenInt
 
 %token <rawval> TokenUint64Val
 %token <rawval> TokenDQoutedString TokenIdentifier TokenDoc TokenTypedef 
@@ -100,13 +103,37 @@ uniqueIDOpt
     }
     ;
 
+list:
+    TokenList TokenLParen type TokenRParen
+    {
+        $$ = List{ Type: $3 }
+    }
+    ;
+
+simpleType:
+    TokenUint   { $$ = Uint{} }
+    | TokenInt  { $$ = Int{} }
+    | TokenText { $$ = Text{} }
+    ; 
+
+type:
+    simpleType
+    | list
+    ;
+
+
+typeOrFuture:
+    type
+    ; 
+
 typedef:
-    decorators TokenTypedef identifier uniqueIDOpt
+    decorators TokenTypedef identifier uniqueIDOpt TokenEquals typeOrFuture TokenSemicolon
     {
         $$ = Typedef{
             BaseStatement: BaseStatement{ Dec : $1 }, 
             Ident : $3, 
             UniqueID : $4,
+            Type : $6,
         }
     }
     ;

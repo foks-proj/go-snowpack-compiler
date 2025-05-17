@@ -45,6 +45,7 @@ type Typedef struct {
 	BaseStatement
 	Ident    Identifier
 	UniqueID UniqueID
+	Type     Type
 }
 
 type Decorators struct {
@@ -59,7 +60,25 @@ type Identifier struct {
 	Name string
 }
 
-var _ Statement = Typedef{}
+type Type interface {
+}
 
+type Future struct {
+}
+
+type List struct {
+	Type Type
+}
+
+type Text struct{}
+type Uint struct{}
+type Int struct{}
+
+var _ Statement = Typedef{}
+var _ Type = List{}
+var _ Type = Future{}
+var _ Type = Text{}
+var _ Type = Uint{}
+var _ Type = Int{}
 var _ Importer = GenericImport{}
 var _ Importer = TypeScriptImport{}
