@@ -34,10 +34,10 @@ import (
 %type <doc> doc 
 %type <docRaw> docRaw
 %type <ident> identifier
-%type <typ> list type simpleType typeOrFuture blob
+%type <typ> list type simpleType typeOrFuture blob dottedIdentifier
 %type <count> countOpt
 
-%token TokenAt TokenSemicolon TokenAs TokenEquals
+%token TokenAt TokenSemicolon TokenAs TokenEquals TokenDot
 %token TokenImport TokenTypeScriptImport TokenGoImport
 %token TokenList TokenLParen TokenRParen TokenText TokenUint TokenInt TokenBool TokenBlob
 
@@ -140,6 +140,17 @@ blob
     }
     ;
 
+dottedIdentifier:
+    identifier
+    {
+        $$ = DerivedType{ Base : $1 }
+    }
+    | identifier TokenDot identifier
+    {
+        $$ = DerivedType{ Base : $3, Class : $1 }
+    }
+    ;
+
 
 simpleType
     : TokenUint { $$ = Uint{} }
@@ -147,6 +158,7 @@ simpleType
     | TokenText { $$ = Text{} }
     | TokenBool { $$ = Bool{} }
     | blob      { $$ = $1 }
+    | dottedIdentifier { $$ = $1 }
     ; 
 
 type:

@@ -54,7 +54,6 @@ const (
 	TokenFuture
 
 	TokenArrow
-	TokenDot
 	TokenComma
 	TokenColon
 	TokenLBrace

@@ -74,6 +74,11 @@ type Blob struct {
 	Count int
 }
 
+type DerivedType struct {
+	Base  Identifier
+	Class Identifier
+}
+
 type Text struct{}
 type Uint struct{}
 type Int struct{}
