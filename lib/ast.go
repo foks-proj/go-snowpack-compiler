@@ -20,6 +20,12 @@ type BaseStatement struct {
 	Dec Decorators
 }
 
+type BaseTypedef struct {
+	BaseStatement
+	Ident    Identifier
+	UniqueID UniqueID
+}
+
 type Importer interface {
 	Statement
 }
@@ -42,10 +48,8 @@ type GoImport struct {
 }
 
 type Typedef struct {
-	BaseStatement
-	Ident    Identifier
-	UniqueID UniqueID
-	Type     Type
+	BaseTypedef
+	Type Type
 }
 
 type Decorators struct {
@@ -78,6 +82,10 @@ type Blob struct {
 type DerivedType struct {
 	Base  Identifier
 	Class Identifier
+}
+
+type Struct struct {
+	BaseTypedef
 }
 
 type Text struct{}

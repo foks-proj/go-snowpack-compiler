@@ -182,9 +182,11 @@ typedef:
     decorators TokenTypedef identifier uniqueIDOpt TokenEquals typeOrFuture TokenSemicolon
     {
         $$ = Typedef{
-            BaseStatement: BaseStatement{ Dec : $1 }, 
-            Ident : $3, 
-            UniqueID : $4,
+            BaseTypedef : BaseTypedef{
+                BaseStatement: BaseStatement{ Dec : $1 }, 
+                Ident : $3, 
+                UniqueID : $4,
+            },
             Type : $6,
         }
     }
