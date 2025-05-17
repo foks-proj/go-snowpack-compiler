@@ -51,8 +51,6 @@ const (
 	TokenArgHeader
 	TokenResHeader
 
-	TokenFuture
-
 	TokenArrow
 	TokenComma
 	TokenColon

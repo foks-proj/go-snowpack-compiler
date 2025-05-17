@@ -64,6 +64,7 @@ type Type interface {
 }
 
 type Future struct {
+	Type Type
 }
 
 type List struct {

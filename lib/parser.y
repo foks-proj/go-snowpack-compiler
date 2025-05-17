@@ -34,12 +34,12 @@ import (
 %type <doc> doc 
 %type <docRaw> docRaw
 %type <ident> identifier
-%type <typ> list type simpleType typeOrFuture blob dottedIdentifier
+%type <typ> list type simpleType typeOrFuture blob dottedIdentifier future
 %type <count> countOpt
 
 %token TokenAt TokenSemicolon TokenAs TokenEquals TokenDot
 %token TokenImport TokenTypeScriptImport TokenGoImport
-%token TokenList TokenLParen TokenRParen TokenText TokenUint TokenInt TokenBool TokenBlob
+%token TokenList TokenLParen TokenRParen TokenText TokenUint TokenInt TokenBool TokenBlob TokenFuture
 
 %token <rawval> TokenUint64Val TokenIntVal
 %token <rawval> TokenDQoutedString TokenIdentifier TokenDoc TokenTypedef 
@@ -166,9 +166,16 @@ type:
     | list
     ;
 
+future
+    : TokenFuture TokenLParen simpleType TokenRParen
+    {
+        $$ = Future{ Type: $3 }
+    }
+    ;
 
-typeOrFuture:
-    type
+typeOrFuture
+    : type
+    | future
     ; 
 
 typedef:
