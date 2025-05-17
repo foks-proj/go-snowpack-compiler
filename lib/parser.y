@@ -15,7 +15,7 @@ import (
     rawval   string
     stmts    []Statement
     stmt     Statement
-    imprt    BaseImport
+    imprt    Importer
 }
 
 %type <file> top
@@ -51,13 +51,15 @@ statements:
 genericImport: 
     TokenImport TokenDQoutedString TokenAs TokenIdentifier TokenSemicolon
     { 
-        $$ = &GenericImport{ Path: $2, Name : $4 } 
+        $$ = &GenericImport{ BaseImport : BaseImport { Path: $2, Name : $4 }  }
     }
     ;
 
 tsImport: 
-    TokenTypeScriptImport
-    { $$ = nil } 
+    TokenTypeScriptImport TokenDQoutedString TokenAs TokenIdentifier TokenSemicolon
+    { 
+        $$ = &TypeScriptImport{ BaseImport : BaseImport { Path: $2, Name : $4 } }
+    } 
     ;
 
 goImport: 

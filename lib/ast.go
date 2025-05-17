@@ -12,13 +12,22 @@ type FileNode struct {
 type Statement interface {
 }
 
-type BaseImport interface {
+type Importer interface {
 	Statement
 }
 
-type GenericImport struct {
+type BaseImport struct {
 	Path string
 	Name string
 }
 
-var _ BaseImport = &GenericImport{}
+type GenericImport struct {
+	BaseImport
+}
+
+type TypeScriptImport struct {
+	BaseImport
+}
+
+var _ Importer = &GenericImport{}
+var _ Importer = &TypeScriptImport{}
