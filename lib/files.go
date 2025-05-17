@@ -127,9 +127,12 @@ func (m *Metadata) run() error {
 	if err != nil {
 		return err
 	}
-	lexer := Lex(indat, m.infile.Name())
-	for tok := range lexer.tokens {
-		fmt.Printf("tok: %v\n", tok)
+	dat, err := Parse(indat, m.infile.Name())
+	if err != nil {
+		return err
+	}
+	if dat != nil {
+		fmt.Printf("Parsed It! %+v\n", *dat)
 	}
 	return ErrNotImplemented
 }

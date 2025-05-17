@@ -7,3 +7,10 @@ type UniqueID struct {
 type FileNode struct {
 	Id UniqueID
 }
+
+type Statement interface {
+}
+
+type BaseImport interface {
+	Statement
+}

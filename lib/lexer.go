@@ -57,10 +57,6 @@ const (
 	TokenArgHeader
 	TokenResHeader
 
-	TokenImport
-	TokenGoImport
-	TokenTypeScriptImpot
-
 	TokenAs
 	TokenFuture
 
@@ -439,7 +435,7 @@ func (l *Lexer) emitIdentifier(start int) {
 	case "go:import":
 		typ = TokenGoImport
 	case "ts:import":
-		typ = TokenTypeScriptImpot
+		typ = TokenTypeScriptImport
 	case "as":
 		typ = TokenAs
 	case "Future":

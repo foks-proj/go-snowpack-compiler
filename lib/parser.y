@@ -13,22 +13,63 @@ import (
     uniqueId UniqueID
     uint     uint64
     rawval   string
+    stmts    []Statement
+    stmt     Statement
+    imprt    BaseImport
 }
 
 %type <file> top
 %type <uniqueId> fileID uniqueID
+%type <stmts> statements
+%type <stmt> statement 
+%type <imprt> import genericImport tsImport goImport
 
-%token TokenAt TokenSemicolon
+%token TokenAt TokenSemicolon 
+%token TokenImport TokenTypeScriptImport TokenGoImport
 
 %token <rawval> TokenUint64Val
 
 %%
 
 top: 
-    fileID
+    fileID statements
     {
         $$ = &FileNode{ Id: $1 }
+        top = $$ // Set the global top variable
     }
+    ;
+
+statements:
+    /* empty */ { $$ = []Statement{} }
+    | statements statement
+    {
+        $$ = append($1, $2)
+    }
+    ;
+
+genericImport: 
+    TokenImport
+    { $$ = nil } 
+    ;
+
+tsImport: 
+    TokenTypeScriptImport
+    { $$ = nil } 
+    ;
+
+goImport: 
+    TokenGoImport
+    { $$ = nil } 
+    ;
+
+import: 
+    genericImport { $$ = $1 }
+    | tsImport    { $$ = $1 }
+    | goImport    { $$ = $1 }
+    ;
+
+statement:
+    import { $$ = $1 }
     ;
 
 fileID:
@@ -48,15 +89,22 @@ uniqueID:
 
 %%
 
+const parserEOF = 0
+
 type snowpLex struct {
     l *Lexer
 }
 
-func (s *snowpLex) Lex(lval *snowpSymType) int {
-    s.l.next()
-    return 0
+func (s *snowpLex) Lex(yylval *snowpSymType) int {
+    tok := s.l.next()
+    yylval.rawval = tok.val
+    return int(tok.typ)
 }
+
+var lexError error
+var top *FileNode
 
 func (s *snowpLex) Error(es string) {
     fmt.Printf("Lexer error: %s\n", es)
+    lexError = fmt.Errorf("Lexer error: %s", es)
 }
