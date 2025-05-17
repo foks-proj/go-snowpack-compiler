@@ -24,17 +24,18 @@ import (
 %type <stmt> statement 
 %type <imprt> import genericImport tsImport goImport
 
-%token TokenAt TokenSemicolon 
+%token TokenAt TokenSemicolon TokenAs
 %token TokenImport TokenTypeScriptImport TokenGoImport
 
 %token <rawval> TokenUint64Val
+%token <rawval> TokenDQoutedString TokenIdentifier
 
 %%
 
 top: 
     fileID statements
     {
-        $$ = &FileNode{ Id: $1 }
+        $$ = &FileNode{ Id: $1, Stmts : $2 }
         top = $$ // Set the global top variable
     }
     ;
@@ -48,8 +49,10 @@ statements:
     ;
 
 genericImport: 
-    TokenImport
-    { $$ = nil } 
+    TokenImport TokenDQoutedString TokenAs TokenIdentifier TokenSemicolon
+    { 
+        $$ = &GenericImport{ Path: $2, Name : $4 } 
+    }
     ;
 
 tsImport: 

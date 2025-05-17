@@ -57,7 +57,6 @@ const (
 	TokenArgHeader
 	TokenResHeader
 
-	TokenAs
 	TokenFuture
 
 	TokenArrow
@@ -73,10 +72,8 @@ const (
 
 	TokenEquals
 
-	TokenIdentifier
 	TokenIntVal
 
-	TokenDQoutedString
 	TokenDocFrag
 )
 

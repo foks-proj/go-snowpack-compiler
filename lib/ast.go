@@ -5,7 +5,8 @@ type UniqueID struct {
 }
 
 type FileNode struct {
-	Id UniqueID
+	Id    UniqueID
+	Stmts []Statement
 }
 
 type Statement interface {
@@ -14,3 +15,10 @@ type Statement interface {
 type BaseImport interface {
 	Statement
 }
+
+type GenericImport struct {
+	Path string
+	Name string
+}
+
+var _ BaseImport = &GenericImport{}
