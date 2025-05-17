@@ -2,10 +2,6 @@
 %{
 package lib
 
-import (
-    "fmt"
-)
-
 %}
 
 %union {
@@ -63,8 +59,11 @@ tsImport:
     ;
 
 goImport: 
-    TokenGoImport
-    { $$ = nil } 
+    TokenGoImport TokenDQoutedString TokenAs TokenIdentifier TokenSemicolon
+    { 
+        $$ = &GoImport { BaseImport : BaseImport { Path: $2, Name : $4 } }
+    } 
+    ;
     ;
 
 import: 
@@ -93,23 +92,3 @@ uniqueID:
     ;
 
 %%
-
-const parserEOF = 0
-
-type snowpLex struct {
-    l *Lexer
-}
-
-func (s *snowpLex) Lex(yylval *snowpSymType) int {
-    tok := s.l.next()
-    yylval.rawval = tok.val
-    return int(tok.typ)
-}
-
-var lexError error
-var top *FileNode
-
-func (s *snowpLex) Error(es string) {
-    fmt.Printf("Lexer error: %s\n", es)
-    lexError = fmt.Errorf("Lexer error: %s", es)
-}

@@ -29,5 +29,9 @@ type TypeScriptImport struct {
 	BaseImport
 }
 
+type GoImport struct {
+	BaseImport
+}
+
 var _ Importer = &GenericImport{}
 var _ Importer = &TypeScriptImport{}

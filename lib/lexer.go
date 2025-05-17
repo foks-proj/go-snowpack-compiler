@@ -9,9 +9,10 @@ type Lexer struct {
 	input    string
 	filename string
 
-	start int
-	pos   int
-	width int
+	start  int
+	pos    int
+	width  int
+	lineno int
 
 	savePoint int
 
@@ -104,6 +105,7 @@ func newLexer(
 		input:    string(data),
 		filename: filename,
 		tokens:   make(chan token),
+		lineno:   1,
 	}
 }
 
@@ -135,7 +137,10 @@ func initialState(l *Lexer) nextState {
 			return lexNumber(l)
 		}
 		switch r {
-		case ' ', '\t', '\n', '\r':
+		case '\n':
+			l.lineno++
+			l.eat()
+		case ' ', '\t', '\r':
 			l.eat()
 		case '-':
 			return lexDash(l)
