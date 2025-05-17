@@ -12,19 +12,25 @@ package lib
     stmts    []Statement
     stmt     Statement
     imprt    Importer
+    dec      *Decorators
+    doc      Docstring
+    docRaw   string
 }
 
 %type <file> top
 %type <uniqueId> fileID uniqueID
 %type <stmts> statements
-%type <stmt> statement 
+%type <stmt> statement typedef
 %type <imprt> import genericImport tsImport goImport
+%type <dec> decorators
+%type <doc> doc 
+%type <docRaw> docRaw
 
 %token TokenAt TokenSemicolon TokenAs
 %token TokenImport TokenTypeScriptImport TokenGoImport
 
 %token <rawval> TokenUint64Val
-%token <rawval> TokenDQoutedString TokenIdentifier
+%token <rawval> TokenDQoutedString TokenIdentifier TokenDoc TokenTypedef
 
 %%
 
@@ -64,6 +70,32 @@ goImport:
         $$ = &GoImport { BaseImport : BaseImport { Path: $2, Name : $4 } }
     } 
     ;
+
+doc : 
+    docRaw
+    {
+        $$ = Docstring{ Raw: $1 }
+    }
+    ;
+
+docRaw
+    : { $$ = "" }
+    | docRaw TokenDoc
+    {
+        $$ = $1 + $2;
+    }
+    ;
+
+
+decorators:
+    doc { $$ = &Decorators{ Doc: $1 } }
+    ;
+
+typedef:
+    decorators TokenTypedef 
+    {
+        $$ = &Typedef{}
+    }
     ;
 
 import: 
@@ -74,6 +106,7 @@ import:
 
 statement:
     import { $$ = $1 }
+    | typedef { $$ = $1 }
     ;
 
 fileID:

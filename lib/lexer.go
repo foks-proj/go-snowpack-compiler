@@ -33,7 +33,6 @@ const (
 
 	TokenUint32Val
 
-	TokenTypedef
 	TokenList
 	TokenOption
 	TokenBlob
@@ -74,8 +73,6 @@ const (
 	TokenEquals
 
 	TokenIntVal
-
-	TokenDocFrag
 )
 
 type transitionType int
@@ -238,7 +235,7 @@ func lexDocString(l *Lexer, emit bool) nextState {
 		}
 		if r == '/' {
 			if emit {
-				l.tokens <- token{typ: TokenDocFrag, val: l.input[start:loopPos]}
+				l.tokens <- token{typ: TokenDoc, val: l.input[start:loopPos]}
 				l.start = l.pos
 			}
 			return nextState{t: ttPop}

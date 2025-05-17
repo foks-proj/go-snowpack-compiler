@@ -33,5 +33,18 @@ type GoImport struct {
 	BaseImport
 }
 
+type Typedef struct {
+}
+
+type Decorators struct {
+	Doc Docstring
+}
+
+type Docstring struct {
+	Raw string
+}
+
+var _ Statement = &Typedef{}
+
 var _ Importer = &GenericImport{}
 var _ Importer = &TypeScriptImport{}
