@@ -23,23 +23,28 @@ import (
     ident    Identifier
     typ      Type
     count    int
+    field    Field
+    fields   []Field
 }
 
 %type <file> top
 %type <uniqueId> fileID uniqueID uniqueIDOpt
 %type <stmts> statements
-%type <stmt> statement typedef
+%type <stmt> statement typedef struct
 %type <imprt> import genericImport tsImport goImport
 %type <dec> decorators
 %type <doc> doc 
 %type <docRaw> docRaw
 %type <ident> identifier
-%type <typ> list type simpleType typeOrFuture blob dottedIdentifier future
-%type <count> countOpt
+%type <typ> list type simpleType typeOrFuture blob dottedIdentifier future typeOrOptional optionalType
+%type <count> countOpt number position
+%type <field> field
+%type <fields> fields
 
 %token TokenAt TokenSemicolon TokenAs TokenEquals TokenDot
 %token TokenImport TokenTypeScriptImport TokenGoImport
 %token TokenList TokenLParen TokenRParen TokenText TokenUint TokenInt TokenBool TokenBlob TokenFuture
+%token TokenLBrace TokenRBrace TokenStruct TokenOption TokenColon
 
 %token <rawval> TokenUint64Val TokenIntVal
 %token <rawval> TokenDQoutedString TokenIdentifier TokenDoc TokenTypedef 
@@ -117,18 +122,28 @@ list:
     }
     ;
 
-countOpt:
-    /* empty */ { $$ = 0 }
-    | TokenLParen TokenIntVal TokenRParen
+number: TokenIntVal
     {
         var i int
-        i, err := strconv.Atoi($2)
+        i, err := strconv.Atoi($1)
         if err != nil {
             parseErr = err
-        } else if i <= 0 {
+        } else if i < 0 {
             parseErr = fmt.Errorf("blob byte-count must be greater than 0")
         } else {
             $$ = i
+        }
+    }
+    ;
+
+countOpt:
+    /* empty */ { $$ = 0 }
+    | TokenLParen number TokenRParen
+    {
+        if $2 <= 0 {
+            parseErr = fmt.Errorf("blob byte-count must be greater than 0")
+        } else {
+            $$ = $2
         }
     }
     ;
@@ -192,15 +207,64 @@ typedef:
     }
     ;
 
+position: TokenAt number { $$ = $2 };
+
+optionalType
+    : TokenOption TokenLParen type TokenRParen
+    {
+        $$ = Option{ Type: $3 }
+    }
+    ;
+
+typeOrOptional
+    : type
+    | optionalType
+    ;
+
+field:
+    identifier position TokenColon typeOrOptional TokenSemicolon
+    {
+        $$ = Field{
+            Ident : $1,
+            Pos : $2,
+            Type : $4,
+        }
+    }
+    ;
+
+
+fields 
+    : /* empty */ { $$ = []Field{} }
+    | fields field
+    {
+        $$ = append($1, $2)
+    }
+    ;
+
+struct:
+    decorators TokenStruct identifier uniqueIDOpt TokenLBrace fields TokenRBrace TokenSemicolon
+    {
+        $$ = Struct{
+            BaseTypedef : BaseTypedef{
+                BaseStatement: BaseStatement{ Dec : $1 }, 
+                Ident : $3, 
+                UniqueID : $4,
+            },
+            Fields : $6,
+        }
+    }
+    ;
+
 import: 
     genericImport { $$ = $1 }
     | tsImport    { $$ = $1 }
     | goImport    { $$ = $1 }
     ;
 
-statement:
-    import { $$ = $1 }
-    | typedef { $$ = $1 }
+statement
+    : import   { $$ = $1 }
+    | typedef  { $$ = $1 }
+    | struct   { $$ = $1 }
     ;
 
 identifier:

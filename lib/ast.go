@@ -84,8 +84,19 @@ type DerivedType struct {
 	Class Identifier
 }
 
+type Field struct {
+	Ident Identifier
+	Pos   int
+	Type  Type
+}
+
 type Struct struct {
 	BaseTypedef
+	Fields []Field
+}
+
+type Option struct {
+	Type Type
 }
 
 type Text struct{}
@@ -100,5 +111,6 @@ var _ Type = Text{}
 var _ Type = Uint{}
 var _ Type = Int{}
 var _ Type = Bool{}
+var _ Type = Option{}
 var _ Importer = GenericImport{}
 var _ Importer = TypeScriptImport{}

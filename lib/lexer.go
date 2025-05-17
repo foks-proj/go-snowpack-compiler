@@ -33,9 +33,6 @@ const (
 
 	TokenUint32Val
 
-	TokenOption
-	TokenStruct
-
 	TokenEnum
 	TokenVariant
 	TokenCase
@@ -53,9 +50,6 @@ const (
 
 	TokenArrow
 	TokenComma
-	TokenColon
-	TokenLBrace
-	TokenRBrace
 	TokenLBracket
 	TokenRBracket
 )
