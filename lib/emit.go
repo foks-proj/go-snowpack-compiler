@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const version = "0.0.3"
+const version = "0.0.4"
 const name = "snowpc"
 const url = "https://github.com/foks-proj/go-snowpack-compiler"
 
@@ -1550,7 +1550,7 @@ func (g *GoEmitter) emitClientMethod(p Protocol, m Method) {
 		g.outputLine("]")
 	} else if !m.ResType.IsVoid() {
 		g.outputFrag("var tmp ")
-		m.ResType.Emit(g)
+		m.ResType.EmitInternal(g)
 		g.emptyLine()
 	} else {
 		nilRes = true
