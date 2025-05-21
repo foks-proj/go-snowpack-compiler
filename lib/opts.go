@@ -27,6 +27,8 @@ type Options struct {
 	outdir  string
 	pkg     string
 	ext     string
+
+	verbose bool
 }
 
 func (l Language) OutExt() string {
@@ -122,5 +124,6 @@ func makeCommand(opts *Options) *cobra.Command {
 	ret.Flags().StringVarP(&opts.outdir, "output-dir", "O", "", "output directory")
 	ret.Flags().StringVarP(&opts.pkg, "package", "p", "", "package name")
 	ret.Flags().StringVarP(&opts.ext, "ext", "e", ".snowp", "file extension")
+	ret.Flags().BoolVarP(&opts.verbose, "verbose", "v", false, "verbose output")
 	return ret
 }

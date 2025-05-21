@@ -2,6 +2,7 @@ package lib
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -129,6 +130,7 @@ type Metadata struct {
 	outfile Outfile
 	lang    Language
 	pkg     string
+	verbose bool
 }
 
 func NewMetadata(fp *FilePair, o *Options) Metadata {
@@ -137,10 +139,16 @@ func NewMetadata(fp *FilePair, o *Options) Metadata {
 		outfile: fp.outfile,
 		lang:    o.lang,
 		pkg:     o.pkg,
+		verbose: o.verbose,
 	}
 }
 
 func (m *Metadata) run() error {
+
+	if m.verbose && !m.infile.isStdPipe() && !m.outfile.isStdPipe() {
+		fmt.Fprintf(os.Stderr, "🏗️  %s → %s\n", m.infile.Name(), m.outfile.Name())
+	}
+
 	indat, err := m.infile.Read()
 	if err != nil {
 		return err
