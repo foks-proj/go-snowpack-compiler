@@ -6,8 +6,8 @@ import (
 	"strings"
 )
 
-const version = "0.0.1"
-const name = "snopwc"
+const version = "0.0.3"
+const name = "snowpc"
 const url = "https://github.com/foks-proj/go-snowpack-compiler"
 
 type Inventory struct {
@@ -760,8 +760,9 @@ func (g *GoEmitter) EmitFutureLink(parent Type, child string) {
 	g.outputLine("return nil, err")
 	g.untab()
 	g.outputLine("}")
-	g.untab()
 	g.outputLine("return &ret, nil")
+	g.untab()
+	g.foutputLine("}")
 
 	g.foutputFrag("func (%s *%s) AssertNormalized() error { return nil }", tv, nm)
 	g.emptyLine()
@@ -772,7 +773,7 @@ func (g *GoEmitter) EmitFutureLink(parent Type, child string) {
 	g.tab()
 	g.outputLine("var tmp []byte")
 	g.outputLine("enc := f.NewEncoderBytes(&tmp)")
-	g.outputLine("if err := enc.Encode(x); err != nil {")
+	g.outputLine("if err := enc.Encode(enc); err != nil {")
 	g.tab()
 	g.outputLine("return nil, err")
 	g.untab()
