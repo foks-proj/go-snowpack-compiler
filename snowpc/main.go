@@ -16,7 +16,8 @@ func debugStop() {
 	fmt.Fprintf(os.Stderr, "SNOWPC_DEBUG_STOP: pid %d\n", pid)
 	fmt.Fprintf(os.Stderr, "Attach debugger and press enter to continue...")
 	var buf [1]byte
-	os.Stdin.Read(buf[:])
+	// ignore errors / output. since we're just waiting for input in debug
+	_, _ = os.Stdin.Read(buf[:])
 }
 
 func mainWithErr() error {

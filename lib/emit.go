@@ -269,7 +269,7 @@ func (g *BaseEmitter) emitStatementPremable(s BaseStatement) {
 }
 
 func (g *GoEmitter) emitEnumConstants(e Enum) {
-	exsym := g.exportSymbol(e.BaseTypedef.Ident.Name)
+	exsym := g.exportSymbol(e.Ident.Name)
 	g.outputLine("const (")
 	g.tab()
 	for _, v := range e.Values {
@@ -280,7 +280,7 @@ func (g *GoEmitter) emitEnumConstants(e Enum) {
 }
 
 func (g *GoEmitter) emitEnumMap(e Enum) {
-	exsym := g.exportSymbol(e.BaseTypedef.Ident.Name)
+	exsym := g.exportSymbol(e.Ident.Name)
 	g.outputLine("var " + exsym + "Map = map[string]" + exsym + "{")
 	g.tab()
 	for _, v := range e.Values {
@@ -291,7 +291,7 @@ func (g *GoEmitter) emitEnumMap(e Enum) {
 }
 
 func (g *GoEmitter) emitEnumRevMap(e Enum) {
-	exsym := g.exportSymbol(e.BaseTypedef.Ident.Name)
+	exsym := g.exportSymbol(e.Ident.Name)
 	g.outputLine("var " + exsym + "RevMap = map[" + exsym + "]string{")
 	g.tab()
 	for _, v := range e.Values {
@@ -342,9 +342,9 @@ func (g *GoEmitter) baseTypeNames(b BaseTypedef) (string, string, string) {
 }
 
 func (g *GoEmitter) emitEnumImport(e Enum) {
-	tv := g.thisVariableName(e.BaseTypedef.Ident.Name)
-	es := g.exportSymbol(e.BaseTypedef.Ident.Name)
-	isn := g.internalStructName(e.BaseTypedef.Ident.Name)
+	tv := g.thisVariableName(e.Ident.Name)
+	es := g.exportSymbol(e.Ident.Name)
+	isn := g.internalStructName(e.Ident.Name)
 	g.foutputLine("func (%s %s) Import() %s {", tv, isn, es)
 	g.tab()
 	g.foutputLine("return %s(%s)", es, tv)
@@ -353,9 +353,9 @@ func (g *GoEmitter) emitEnumImport(e Enum) {
 }
 
 func (g *GoEmitter) emitEnumExport(e Enum) {
-	tv := g.thisVariableName(e.BaseTypedef.Ident.Name)
-	es := g.exportSymbol(e.BaseTypedef.Ident.Name)
-	isn := g.internalStructName(e.BaseTypedef.Ident.Name)
+	tv := g.thisVariableName(e.Ident.Name)
+	es := g.exportSymbol(e.Ident.Name)
+	isn := g.internalStructName(e.Ident.Name)
 	g.foutputLine("func (%s %s) Export() *%s {", tv, es, isn)
 	g.tab()
 	g.foutputLine("return ((*%s)(&%s))", isn, tv)
@@ -366,19 +366,19 @@ func (g *GoEmitter) emitEnumExport(e Enum) {
 
 func (g *GoEmitter) EmitEnum(e Enum) {
 	g.emitStatementPremable(e.BaseStatement)
-	exsym := g.exportSymbol(e.BaseTypedef.Ident.Name)
+	exsym := g.exportSymbol(e.Ident.Name)
 	g.outputLine("type " + exsym + " int")
 	g.emptyLine()
 	g.emitEnumConstants(e)
 	g.emitEnumMap(e)
 	g.emitEnumRevMap(e)
-	g.outputLine("type " + g.internalStructName(e.BaseTypedef.Ident.Name) + " " + exsym)
+	g.outputLine("type " + g.internalStructName(e.Ident.Name) + " " + exsym)
 	g.emitEnumImport(e)
 	g.emitEnumExport(e)
 }
 
 func (g *GoEmitter) emitTypedefInternal(t Typedef) {
-	g.foutputFrag("type %s ", g.internalStructName(t.BaseTypedef.Ident.Name))
+	g.foutputFrag("type %s ", g.internalStructName(t.Ident.Name))
 	t.Type.EmitInternal(g)
 	g.emptyLine()
 }
@@ -470,7 +470,7 @@ func (g *GoEmitter) emitTypeInternal(t Type) { t.EmitInternal(g) }
 
 func (g *GoEmitter) EmitTypedef(t Typedef) {
 	g.emitStatementPremable(t.BaseStatement)
-	exsym := g.exportSymbol(t.BaseTypedef.Ident.Name)
+	exsym := g.exportSymbol(t.Ident.Name)
 	g.foutputFrag("type %s ", exsym)
 	g.emitType(t.Type)
 	g.emptyLine()
@@ -484,7 +484,7 @@ func (g *GoEmitter) EmitTypedef(t Typedef) {
 
 	// If we've typedef'ed to a Future(Foo) type, then we need to link
 	// the Unique IDs of this child object to the parent's.
-	t.Type.EmitFutureLink(g, t.BaseTypedef.Ident.Name)
+	t.Type.EmitFutureLink(g, t.Ident.Name)
 }
 
 func (g *GoEmitter) EmitVoid(v Void)     {}
@@ -800,7 +800,7 @@ func (g *GoEmitter) emitStructVisibleField(f Field) {
 }
 
 func (g *GoEmitter) emitStructVisible(s Struct) {
-	t := g.exportSymbol(s.BaseTypedef.Ident.Name)
+	t := g.exportSymbol(s.Ident.Name)
 	g.foutputLine("type %s struct {", t)
 	g.tab()
 	for _, f := range s.Fields {
@@ -913,7 +913,7 @@ func (g *GoEmitter) emitVariantStructCase(v Variant, c Case, isInternal bool) {
 }
 
 func (g *GoEmitter) emitVariantTopStruct(v Variant) {
-	snm := g.exportSymbol(v.BaseTypedef.Ident.Name)
+	snm := g.exportSymbol(v.Ident.Name)
 	sv := g.exportSymbol(v.SwitchVar.Name)
 	g.foutputLine("type %s struct {", snm)
 	g.tab()
@@ -935,7 +935,7 @@ func (g *GoEmitter) switchInternalStructType(s string) string {
 }
 
 func (g *GoEmitter) emitVariantInternalStruct(v Variant) {
-	ism := g.internalStructName(v.BaseTypedef.Ident.Name)
+	ism := g.internalStructName(v.Ident.Name)
 	sv := g.exportSymbol(v.SwitchVar.Name)
 	g.foutputLine("type %s struct {", ism)
 	g.tab()
@@ -945,7 +945,7 @@ func (g *GoEmitter) emitVariantInternalStruct(v Variant) {
 	g.emptyLine()
 	g.foutputLine("%s %s",
 		g.switchStructName(),
-		g.switchInternalStructType(v.BaseTypedef.Ident.Name),
+		g.switchInternalStructType(v.Ident.Name),
 	)
 	g.emptyLine()
 	g.untab()
@@ -953,7 +953,7 @@ func (g *GoEmitter) emitVariantInternalStruct(v Variant) {
 }
 
 func (g *GoEmitter) emitVariantInternalSwitchStruct(v Variant) {
-	g.foutputLine("type %s struct {", g.switchInternalStructType(v.BaseTypedef.Ident.Name))
+	g.foutputLine("type %s struct {", g.switchInternalStructType(v.Ident.Name))
 	g.tab()
 	g.outputLine(
 		"_struct struct{} `codec:\",omitempty\"` //lint:ignore U1000 msgpack internal field",
@@ -970,7 +970,7 @@ func (g *GoEmitter) caseDataAccess(v Variant, c Case) string {
 	if p == nil {
 		return ""
 	}
-	tv := g.thisVariableName(v.BaseTypedef.Ident.Name)
+	tv := g.thisVariableName(v.Ident.Name)
 	return strings.Join([]string{
 		tv,
 		g.variantCasePositionToVariable(*p),
@@ -1008,8 +1008,8 @@ func (g *GoEmitter) emitVariantSwitchAccessorCase(v Variant, c Case, tv string) 
 }
 
 func (g *GoEmitter) emitVariantSwitchAccessor(v Variant) {
-	tv := g.thisVariableName(v.BaseTypedef.Ident.Name)
-	exsym := g.exportSymbol(v.BaseTypedef.Ident.Name)
+	tv := g.thisVariableName(v.Ident.Name)
+	exsym := g.exportSymbol(v.Ident.Name)
 	lclsv := g.exportSymbol(v.SwitchVar.Name)
 	sv := tv + "." + lclsv
 
@@ -1030,7 +1030,7 @@ func (g *GoEmitter) emitVariantSwitchAccessor(v Variant) {
 }
 
 func (g *GoEmitter) switchValue(v Variant) string {
-	tv := g.thisVariableName(v.BaseTypedef.Ident.Name)
+	tv := g.thisVariableName(v.Ident.Name)
 	sv := g.exportSymbol(v.SwitchVar.Name)
 	return fmt.Sprintf("%s.%s", tv, sv)
 }
@@ -1059,8 +1059,8 @@ func (g *GoEmitter) emitVariantDataAcceessorsCase(v Variant, c Case) {
 	}
 
 	sv := g.switchValue(v)
-	exsym := g.exportSymbol(v.BaseTypedef.Ident.Name)
-	tv := g.thisVariableName(v.BaseTypedef.Ident.Name)
+	exsym := g.exportSymbol(v.Ident.Name)
+	tv := g.thisVariableName(v.Ident.Name)
 
 	for _, p := range pairs {
 		g.foutputFrag("func (%s %s) %s() ", tv, exsym, p.getterMethodName)
@@ -1073,11 +1073,12 @@ func (g *GoEmitter) emitVariantDataAcceessorsCase(v Variant, c Case) {
 		g.untab()
 		g.outputLine("}")
 		if len(p.caseLabel) > 0 {
-			if p.caseLabel == "true" {
+			switch p.caseLabel {
+			case "true":
 				g.foutputLine("if !%s {", sv)
-			} else if p.caseLabel == "false" {
+			case "false":
 				g.foutputLine("if %s {", sv)
-			} else {
+			default:
 				g.foutputLine("if %s != %s {", sv, p.caseLabel)
 			}
 			g.tab()
@@ -1095,7 +1096,7 @@ func (g *GoEmitter) emitVariantDataAcceessorsCase(v Variant, c Case) {
 }
 
 func (g *GoEmitter) emitVariantConstructorCase(v Variant, c Case) {
-	tt := g.exportSymbol(v.BaseTypedef.Ident.Name)
+	tt := g.exportSymbol(v.Ident.Name)
 	defConstructor := "New" + tt + "Default"
 
 	type pair struct {
@@ -1165,7 +1166,7 @@ func (g *GoEmitter) emitVariantImportCase(v Variant, c Case) {
 	if p == nil {
 		return
 	}
-	tv := g.thisVariableName(v.BaseTypedef.Ident.Name)
+	tv := g.thisVariableName(v.Ident.Name)
 	field := g.variantCasePositionToVariable(*p)
 	g.foutputFrag("%s: ", field)
 	source := strings.Join([]string{
@@ -1220,7 +1221,7 @@ func (g *GoEmitter) emitVariantExportCase(v Variant, c Case) {
 	if c.Position == nil {
 		return
 	}
-	tv := g.thisVariableName(v.BaseTypedef.Ident.Name)
+	tv := g.thisVariableName(v.Ident.Name)
 	field := g.variantCasePositionToVariable(*c.Position)
 	g.foutputFrag("%s: ", field)
 
@@ -1258,7 +1259,7 @@ func (g *GoEmitter) emitVariantExport(v Variant) {
 	g.foutputLine("%s: %s.%s,", sv, tv, sv)
 	g.foutputLine("%s: %s{",
 		g.switchStructName(),
-		g.switchInternalStructType(v.BaseTypedef.Ident.Name),
+		g.switchInternalStructType(v.Ident.Name),
 	)
 	g.tab()
 	for _, c := range v.Cases {
@@ -1289,7 +1290,7 @@ func (g *GoEmitter) EmitVariant(v Variant) {
 }
 
 func (g *GoEmitter) protocolID(p Protocol) string {
-	return g.exportSymbol(p.BaseTypedef.Ident.Name) + "ProtocolID"
+	return g.exportSymbol(p.Ident.Name) + "ProtocolID"
 }
 
 func (g *GoEmitter) emitProtocolID(p Protocol) {
@@ -1336,7 +1337,7 @@ func (g *GoEmitter) emitServerHookSignature(p Protocol, m Method) {
 
 func (g *GoEmitter) emitServerInterface(p Protocol) {
 	g.emitStatementPremable(p.BaseStatement)
-	nm := g.exportSymbol(p.BaseTypedef.Ident.Name)
+	nm := g.exportSymbol(p.Ident.Name)
 	g.foutputLine("type %sInterface interface {", nm)
 	g.tab()
 	for _, m := range p.Methods {
@@ -1361,7 +1362,7 @@ func (g *GoEmitter) emitServerInterface(p Protocol) {
 }
 
 func (g *GoEmitter) emitServerWrapError(p Protocol) {
-	exsym := g.exportSymbol(p.BaseTypedef.Ident.Name)
+	exsym := g.exportSymbol(p.Ident.Name)
 
 	g.foutputLine(
 		`func %sMakeGenericErrorWrapper(f %sErrorWrapper) rpc.WrapErrorFunc {`,
@@ -1387,14 +1388,14 @@ func (g *GoEmitter) emitServerWrapError(p Protocol) {
 
 }
 func (g *GoEmitter) emitClientErrorUnwrapperType(p Protocol) {
-	exsym := g.exportSymbol(p.BaseTypedef.Ident.Name)
+	exsym := g.exportSymbol(p.Ident.Name)
 	g.foutputFrag("type %sErrorUnwrapper func(", exsym)
 	p.Modifiers.Errors.Type.Emit(g)
 	g.outputLine(") error")
 }
 
 func (g *GoEmitter) emitClientErrorWrapperType(p Protocol) {
-	exsym := g.exportSymbol(p.BaseTypedef.Ident.Name)
+	exsym := g.exportSymbol(p.Ident.Name)
 	g.foutputFrag("type %sErrorWrapper func(error) ", exsym)
 	p.Modifiers.Errors.Type.Emit(g)
 	g.emptyLine()
@@ -1408,9 +1409,9 @@ func (g *GoEmitter) privateSymbol(s string) string {
 }
 
 func (g *GoEmitter) emitClientErrorUnwrapperAdapterStruct(p Protocol) {
-	nm := g.privateSymbol(p.BaseTypedef.Ident.Name) + "ErrorUnwrapperAdapter"
-	hook := g.exportSymbol(p.BaseTypedef.Ident.Name) + "ErrorUnwrapper"
-	tv := g.thisVariableName(p.BaseTypedef.Ident.Name)
+	nm := g.privateSymbol(p.Ident.Name) + "ErrorUnwrapperAdapter"
+	hook := g.exportSymbol(p.Ident.Name) + "ErrorUnwrapper"
+	tv := g.thisVariableName(p.Ident.Name)
 
 	g.foutputLine("type %s struct {", nm)
 	g.tab()
@@ -1460,7 +1461,7 @@ func (g *GoEmitter) emitClientErrorUnwrapper(p Protocol) {
 }
 
 func (g *GoEmitter) emitClientStub(p Protocol) {
-	exsym := g.exportSymbol(p.BaseTypedef.Ident.Name)
+	exsym := g.exportSymbol(p.Ident.Name)
 	g.foutputLine("type %sClient struct {", exsym)
 	g.tab()
 	g.outputLine("Cli rpc.GenericClient")
@@ -1480,7 +1481,7 @@ func (g *GoEmitter) emitClientStub(p Protocol) {
 }
 
 func (g *GoEmitter) emitClientMethod(p Protocol, m Method) {
-	pn := g.exportSymbol(p.BaseTypedef.Ident.Name)
+	pn := g.exportSymbol(p.Ident.Name)
 	mn := g.exportSymbol(m.Ident.Name)
 
 	g.foutputFrag("func (c %sClient) %s (ctx context.Context", pn, mn)
@@ -1559,9 +1560,9 @@ func (g *GoEmitter) emitClientMethod(p Protocol, m Method) {
 		res = "nil"
 	}
 	method := fmt.Sprintf("rpc.NewMethodV2(%s, %d, \"%s.%s\")",
-		g.protocolID(p), m.Pos, p.BaseTypedef.Ident.Name, m.Ident.Name)
+		g.protocolID(p), m.Pos, p.Ident.Name, m.Ident.Name)
 
-	adapter := g.privateSymbol(p.BaseTypedef.Ident.Name) + "ErrorUnwrapperAdapter{" +
+	adapter := g.privateSymbol(p.Ident.Name) + "ErrorUnwrapperAdapter{" +
 		"h: c.ErrorUnwrapper}"
 
 	g.foutputLine("err = c.Cli.Call2(ctx, %s, warg, %s, 0 * time.Millisecond, %s)",
@@ -1753,12 +1754,12 @@ func (g *GoEmitter) emitServerProtocolHandler(p Protocol, m Method) {
 }
 
 func (g *GoEmitter) emitServerProtocol(p Protocol) {
-	exsym := g.exportSymbol(p.BaseTypedef.Ident.Name)
+	exsym := g.exportSymbol(p.Ident.Name)
 	g.foutputLine("func %sProtocol(i %sInterface) rpc.ProtocolV2 {", exsym, exsym)
 	g.tab()
 	g.foutputLine("return rpc.ProtocolV2{")
 	g.tab()
-	g.foutputLine("Name: \"%s\",", p.BaseTypedef.Ident.Name)
+	g.foutputLine("Name: \"%s\",", p.Ident.Name)
 	g.foutputLine("ID: %s,", g.protocolID(p))
 	g.foutputLine("Methods: map[rpc.Position]rpc.ServeHandlerDescriptionV2{")
 	g.tab()
@@ -1857,7 +1858,7 @@ func (g *GoEmitter) MethodArgName(mthd string, argName string) string {
 }
 
 func (g *GoEmitter) EmitImport(i Import) {
-	g.BaseEmitter.storeImport(i)
+	g.storeImport(i)
 	if i.Lang == LangGo {
 		g.foutputLine("import %s \"%s\"", i.Name, i.Path)
 	}

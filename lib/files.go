@@ -27,20 +27,28 @@ type Infile struct {
 	File
 }
 
-func (i *Infile) Read() ([]byte, error) {
+func (i *Infile) Read() (ret []byte, err error) {
 
 	var rc io.ReadCloser
 	if i.isStdPipe() {
 		rc = os.Stdin
 	} else {
-		var err error
 		rc, err = os.Open(i.name)
 		if err != nil {
 			return nil, err
 		}
 	}
-	defer rc.Close()
-	return io.ReadAll(rc)
+	defer func() {
+		cerr := rc.Close()
+		if err == nil && cerr != nil {
+			err = cerr
+		}
+	}()
+	ret, err = io.ReadAll(rc)
+	if err != nil {
+		return nil, err
+	}
+	return ret, nil
 }
 
 func (i *Infile) Name() string {
