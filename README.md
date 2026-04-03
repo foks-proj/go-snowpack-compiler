@@ -2,7 +2,7 @@
 
 A compiler for the Snowpack IDL (Interface Definition Language) that generates type-safe Go code for RPC services and cryptographic operations. Define your protocols once in `.snowp` files and get structs, enums, tagged unions, serialization, full client/server RPC stubs, and cryptographic domain separation stubs generated automatically.
 
-Ported from the original TypeScript implementation.
+Ported from the original [TypeScript implementation](https://github.com/foks-proj/node-snowpack-compiler).
 
 ## Motivation
 
