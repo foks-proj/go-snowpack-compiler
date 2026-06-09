@@ -1507,15 +1507,26 @@ func (g *GoEmitter) emitClientMethod(p Protocol, m Method) {
 	g.outputLine("err error) {")
 	g.tab()
 
+	// Name for the synthesized wrapper local. For a single-arg method the
+	// parameter is emitted under the snowp field's own name, so a fixed "arg"
+	// here would collide when that field happens to be named "arg". Append
+	// underscores until it differs from the (sole) parameter name.
+	argLocal := "arg"
 	if m.singleArg() {
-		g.foutputLine("arg := %s{", argStructName)
+		for argLocal == m.Params[0].Ident.Name {
+			argLocal += "_"
+		}
+	}
+
+	if m.singleArg() {
+		g.foutputLine("%s := %s{", argLocal, argStructName)
 		g.tab()
 		n := m.Params[0].Ident.Name
 		g.foutputLine("%s: %s,", g.exportSymbol(n), n)
 		g.untab()
 		g.outputLine("}")
 	} else if len(m.Params) == 0 {
-		g.foutputLine("var arg %s", argStructName)
+		g.foutputLine("var %s %s", argLocal, argStructName)
 	}
 
 	if p.Modifiers.ArgHeader != nil {
@@ -1526,7 +1537,7 @@ func (g *GoEmitter) emitClientMethod(p Protocol, m Method) {
 		g.outputFrag(argType)
 		g.outputLine("] {")
 		g.tab()
-		g.outputLine("Data: arg.Export(),")
+		g.foutputLine("Data: %s.Export(),", argLocal)
 		g.untab()
 		g.outputLine("}")
 		g.outputLine("if c.MakeArgHeader != nil {")
@@ -1535,7 +1546,7 @@ func (g *GoEmitter) emitClientMethod(p Protocol, m Method) {
 		g.untab()
 		g.outputLine("}")
 	} else {
-		g.outputLine("warg := arg.Export()")
+		g.foutputLine("warg := %s.Export()", argLocal)
 	}
 
 	var nilRes bool
